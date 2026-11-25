@@ -15,19 +15,24 @@ export default {async fetch(req,env){
  if(!env.NAMESILO_API_KEY)return json({error:"Registrar not configured."},503);
  if(!env.SEARCH_LIMITER||!req.headers.get("CF-Connecting-IP"))return json({error:"Search protection not configured."},503);
  try{const limit=await env.SEARCH_LIMITER.limit({key:req.headers.get("CF-Connecting-IP")});if(!limit.success)return json({error:"Too many searches. Try again in a minute."},429);}catch{return json({error:"Search protection unavailable."},503);}
+ let stage="prepare";
  try{
  const q=new URL("https://www.namesilo.com/api/checkRegisterAvailability");
  q.search=new URLSearchParams({version:"1",type:"json",key:env.NAMESILO_API_KEY,domains:d}).toString();
- const r=await fetch(q,{redirect:"error",signal:AbortSignal.timeout(10000)});
+ stage="fetch";
+ const r=await fetch(q.toString(),{redirect:"manual",signal:AbortSignal.timeout(10000)});
+ stage="http";
  if(!r.ok){console.warn("registrar_http",r.status);throw Error();}
+ stage="json";
  const a=(await r.json()).reply;
+ stage="reply";
  if(String(a?.code)!=="300"){console.warn("registrar_code",/^\d{3}$/.test(String(a?.code))?String(a.code):"unknown");throw Error();}
  const match=x=>registrarMatch(x,d);
  const yes=match(a.available),no=match(a.unavailable);
  if(Boolean(yes)===Boolean(no)){console.warn("registrar_response_mismatch");throw Error();}
  let pricing=null;if(yes){ /* Price remains disabled until premium attributes and live catalog are verified. */ }
  return json({domain:d,available:!!yes,pricing});
- }catch{console.warn("registrar_lookup_failed");return json({error:"Registrar lookup unavailable. Try again later."},502);}
+ }catch(e){const kind=["TypeError","SyntaxError","AbortError","TimeoutError"].includes(e?.name)?e.name:"Error";console.warn("registrar_lookup_failed",stage,kind);return json({error:"Registrar lookup unavailable. Try again later."},502);}
  }
  if(u.pathname!=="/")return json({error:"Not found"},404);
  return new Response(page,{headers:{"content-type":"text/html; charset=utf-8","x-content-type-options":"nosniff","content-security-policy":"default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'"}});
