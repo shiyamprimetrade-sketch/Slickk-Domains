@@ -1,6 +1,10 @@
 import {catalogQuote} from './catalog.mjs';
 const headers={"content-type":"application/json","cache-control":"no-store","x-content-type-options":"nosniff"};
 export function validDomain(s){return typeof s==="string"&&s.length<=253&&s.split(".").length>=2&&s.split(".").every(x=>/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(x))&&/^[a-z]{2,63}$/.test(s.split(".").pop());}
+export function registrarMatch(bucket,d){
+ const entries=Array.isArray(bucket)?bucket:[bucket?.domain??bucket].flat();
+ return entries.find(v=>{const n=typeof v==="string"?v:v?.domain??v?.["$t"]??v?.["#text"];return typeof n==="string"&&n.toLowerCase()===d;});
+}
 const json=(v,status=200)=>new Response(JSON.stringify(v),{status,headers});
 export default {async fetch(req,env){
  const u=new URL(req.url);
@@ -15,15 +19,15 @@ export default {async fetch(req,env){
  const q=new URL("https://www.namesilo.com/api/checkRegisterAvailability");
  q.search=new URLSearchParams({version:"1",type:"json",key:env.NAMESILO_API_KEY,domains:d}).toString();
  const r=await fetch(q,{redirect:"error",signal:AbortSignal.timeout(10000)});
- if(!r.ok)throw Error();
+ if(!r.ok){console.warn("registrar_http",r.status);throw Error();}
  const a=(await r.json()).reply;
- if(String(a?.code)!=="300")throw Error();
- const match=x=>[x?.domain].flat().find(v=>typeof v==="string"?v===d:v?.domain===d||v?.["#text"]===d);
+ if(String(a?.code)!=="300"){console.warn("registrar_code",/^\d{3}$/.test(String(a?.code))?String(a.code):"unknown");throw Error();}
+ const match=x=>registrarMatch(x,d);
  const yes=match(a.available),no=match(a.unavailable);
- if(Boolean(yes)===Boolean(no))throw Error();
- let pricing=null;if(yes){try{pricing=await catalogQuote(d,env);}catch{ /* No invented quotes. */ }}
+ if(Boolean(yes)===Boolean(no)){console.warn("registrar_response_mismatch");throw Error();}
+ let pricing=null;if(yes){ /* Price remains disabled until premium attributes and live catalog are verified. */ }
  return json({domain:d,available:!!yes,pricing});
- }catch{return json({error:"Registrar lookup unavailable. Try again later."},502);}
+ }catch{console.warn("registrar_lookup_failed");return json({error:"Registrar lookup unavailable. Try again later."},502);}
  }
  if(u.pathname!=="/")return json({error:"Not found"},404);
  return new Response(page,{headers:{"content-type":"text/html; charset=utf-8","x-content-type-options":"nosniff","content-security-policy":"default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'"}});
