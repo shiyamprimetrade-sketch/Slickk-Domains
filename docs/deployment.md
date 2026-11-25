@@ -1,0 +1,2 @@
+# Deployment gate
+Do not deploy until the actual D1 database UUID is added to wrangler.jsonc under d1_databases with binding DB. Dashboard bindings may be overwritten by Wrangler. Keep production builds disabled until configuration and tests are verified. Never commit API keys. Use a read-only NameSilo secret. Pricing and checkout are not enabled. Apply migrations only after reviewing the target database. Public search requires abuse protection before launch.
