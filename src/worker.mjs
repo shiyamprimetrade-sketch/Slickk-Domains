@@ -9,6 +9,8 @@ export default {async fetch(req,env){
  const d=(u.searchParams.get("domain")||"").trim().toLowerCase();
  if(!validDomain(d))return json({error:"Enter a valid ASCII domain name."},400);
  if(!env.NAMESILO_API_KEY)return json({error:"Registrar not configured."},503);
+ if(!env.SEARCH_LIMITER||!req.headers.get("CF-Connecting-IP"))return json({error:"Search protection not configured."},503);
+ try{const limit=await env.SEARCH_LIMITER.limit({key:req.headers.get("CF-Connecting-IP")});if(!limit.success)return json({error:"Too many searches. Try again in a minute."},429);}catch{return json({error:"Search protection unavailable."},503);}
  try{
  const q=new URL("https://www.namesilo.com/api/checkRegisterAvailability");
  q.search=new URLSearchParams({version:"1",type:"json",key:env.NAMESILO_API_KEY,domains:d}).toString();
@@ -18,7 +20,7 @@ export default {async fetch(req,env){
  if(String(a?.code)!=="300")throw Error();
  const match=x=>[x?.domain].flat().find(v=>typeof v==="string"?v===d:v?.domain===d||v?.["#text"]===d);
  const yes=match(a.available),no=match(a.unavailable);
- if(!yes&&!no)throw Error();
+ if(Boolean(yes)===Boolean(no))throw Error();
  let pricing=null;if(yes){try{pricing=await catalogQuote(d,env);}catch{ /* No invented quotes. */ }}
  return json({domain:d,available:!!yes,pricing});
  }catch{return json({error:"Registrar lookup unavailable. Try again later."},502);}
