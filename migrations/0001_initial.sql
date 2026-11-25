@@ -1,0 +1,2 @@
+CREATE TABLE IF NOT EXISTS orders (id TEXT PRIMARY KEY, domain TEXT NOT NULL, status TEXT NOT NULL CHECK(status IN ('draft','awaiting_payment','paid','registered','failed','cancelled')), currency TEXT NOT NULL DEFAULT 'BDT', amount_minor INTEGER NOT NULL CHECK(amount_minor>=0), created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS pricing_settings (id INTEGER PRIMARY KEY CHECK(id=1), bdt_per_usd_minor INTEGER NOT NULL CHECK(bdt_per_usd_minor>0), markup_bps INTEGER NOT NULL CHECK(markup_bps>=0));
