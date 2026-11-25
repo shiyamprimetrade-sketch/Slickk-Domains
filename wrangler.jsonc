@@ -15,5 +15,15 @@
       "pattern": "domains.slickk.online",
       "custom_domain": true
     }
+  ],
+  "ratelimits": [
+    {
+      "name": "SEARCH_LIMITER",
+      "namespace_id": "1001",
+      "simple": {
+        "limit": 10,
+        "period": 60
+      }
+    }
   ]
 }
