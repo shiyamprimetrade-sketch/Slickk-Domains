@@ -2,5 +2,18 @@
   "name": "slickk-domains",
   "main": "src/worker.mjs",
   "compatibility_date": "2026-11-25",
-  "keep_vars": true
+  "keep_vars": true,
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "slickk-domains-db",
+      "database_id": "996b40b7-df5f-4071-b457-06243a630c51"
+    }
+  ],
+  "routes": [
+    {
+      "pattern": "domains.slickk.online",
+      "custom_domain": true
+    }
+  ]
 }
