@@ -3,3 +3,4 @@ test('domain validation',()=>{for(const d of ['example.com','a-b.co.uk'])assert.
 test('missing secret fails closed',async()=>{const r=await worker.fetch(new Request('https://example.com/api/search?domain=example.com'),{});assert.equal(r.status,503)});
 test('reject writes',async()=>{assert.equal((await worker.fetch(new Request('https://example.com/',{method:'POST'}),{})).status,405)});
 test('storefront',async()=>{const r=await worker.fetch(new Request('https://example.com/'),{});assert.equal(r.status,200);assert.match(await r.text(),/SLICKK DOMAINS/)});
+test('storefront accepts validated cross-site domain and links home',async()=>{const r=await worker.fetch(new Request('https://example.com/?domain=example.com'),{});const html=await r.text();assert.match(html,/URLSearchParams\(location.search\)/);assert.match(html,/https:\/\/slickk\.online\/domains\//);assert.match(html,/incoming\.length<=253/)});
